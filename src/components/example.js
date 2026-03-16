@@ -1,0 +1,1 @@
+// This is a placeholder component. It may be replaced with actual component code at some point in the future.

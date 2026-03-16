@@ -8,10 +8,10 @@ export default {
   // lets you organize them into sections and have unlisted pages.
   pages: [
     {
-      name: "Examples",
+      name: "Contents",
       pages: [
         {name: "Dashboard", path: "/dashboard"},
-        {name: "Report", path: "/example-report"}
+        {name: "Jupyter Notebook", path: "/separation-process"}
       ]
     }
   ],

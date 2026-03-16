@@ -11,7 +11,9 @@ const data = await FileAttachment("./data/opm_data.parquet").parquet();
 // Render loader data as a table
 display(Inputs.table(data, {
     format: {
-        personnel_action_effective_date_yyyymm: (x) => new Date(x).toISOString().slice(0, 7)
+        personnel_action_effective_date_yyyymm: (x) => new Date(x).toISOString().slice(0, 7),
+        appointment_not_to_exceed_date: (x) => new Date(x).toISOString().slice(0, 10),
+        service_computation_date_leave: (x) => new Date(x).toISOString().slice(0, 10)
     }
 })
 );
