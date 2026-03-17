@@ -1,136 +1,359 @@
 ---
+title: OPM Separations Dashboard
 theme: dashboard
-title: Separation Anxiety
-toc: false
 ---
 
+# OPM Separations Data Explorer
+
+Explore the federal workforce dataset. Use the filters below to slice the data dynamically. Additional features will be added over time.
+
+
 ```js
-// Connect to single parquet file
-const data = await FileAttachment("./data/opm_data.parquet").parquet();
-
-// Render loader data as a table
-display(Inputs.table(data, {
-    format: {
-        personnel_action_effective_date_yyyymm: (x) => new Date(x).toISOString().slice(0, 7),
-        appointment_not_to_exceed_date: (x) => new Date(x).toISOString().slice(0, 10),
-        service_computation_date_leave: (x) => new Date(x).toISOString().slice(0, 10)
-    }
-})
-);
-
-// Render loader chart
-display(
-  Plot.plot({
-    x: { 
-      type: "time",
-      label: "Effective Date" 
-    },
-    y: { 
-      label: "Number of Departures" 
-    },
-    marks: [
-      Plot.rectY(data, Plot.binX({ y: "count" }, { 
-        x: (d) => new Date(d.personnel_action_effective_date_yyyymm),
-        // 2. ADD INTERVAL HERE for monthly bars
-        interval: "month" 
-      })),
-      Plot.ruleY([0]) 
-    ]
-  })
-);
-
-// Render Reasons for Separation Chart
-display(
-  Plot.plot({
-    title: "Top Reasons for Separation",
-    marginLeft: 220, // Give plenty of room for the category labels
-    x: { label: "Number of Departures" },
-    y: { 
-      label: null, 
-      sort: { x: "x", reverse: true } // Sort bars from largest to smallest
-    },
-    marks: [
-      Plot.barX(data, Plot.groupY({ x: "count" }, { 
-        y: "separation_category", 
-        fill: "steelblue",
-        tip: true // Adds interactive tooltips on hover
-      })),
-      Plot.ruleX([0])
-    ]
-  })
-);
-
-// Render Length of Service vs Pay Chart
-// TODO: Length of service is sometimes incorrect in the raw data. Add a check to determine when length of service exceeds the difference of sevice computation date and personnel action date and adjust accordingly.
-display(
-  Plot.plot({
-    title: "Length of Service vs. Final Pay",
-    x: { label: "Length of Service (Years)" },
-    y: { 
-      label: "Annualized Adjusted Basic Pay ($)", 
-      tickFormat: "s" 
-    },
-    color: { 
-      legend: true, 
-      domain: ["QUIT", "RETIREMENT - VOLUNTARY", "TRANSFER TO ANOTHER AGENCY"] // Focus colors on main reasons, others will be gray
-    },
-    marks: [
-      Plot.dot(data, { 
-        // Inline casting to avoid the BigInt TypeError
-        x: (d) => Number(d.length_of_service_years), 
-        y: (d) => Number(d.annualized_adjusted_basic_pay), 
-        fill: "separation_category", 
-        fillOpacity: 0.6,
-        tip: true 
-      }),
-      // Optional: Add a subtle trend line
-      Plot.linearRegressionY(data, {
-        x: (d) => Number(d.length_of_service_years), 
-        y: (d) => Number(d.annualized_adjusted_basic_pay), 
-        stroke: "currentColor",
-        strokeOpacity: 0.3
-      })
-    ]
-  })
-);
-
-// Render Demographics Chart
-display(
-  Plot.plot({
-    title: "Departures by Age Bracket",
-    x: { label: "Age Bracket" },
-    y: { label: "Number of Departures" },
-    marks: [
-      Plot.barY(data, Plot.groupX({ y: "count" }, { 
-        x: "age_bracket", 
-        fill: "#e28743", // Distinct color from the other charts
-        tip: true
-      })),
-      Plot.ruleY([0])
-    ]
-  })
-);
-
-// Render Education Level Bar Chart
-display(
-  Plot.plot({
-    title: "Departures by Education Level",
-    marginLeft: 160, // Provides room for the education level labels
-    x: { label: "Number of Departures" },
-    y: { 
-      label: null,
-      sort: { x: "x", reverse: true } // Sorts from most to least frequent
-    },
-    color: { legend: false }, // We don't need a legend since the y-axis has labels
-    marks: [
-      Plot.barX(data, Plot.groupY({ x: "count" }, { 
-        y: "education_level_bracket", 
-        fill: "education_level_bracket",
-        tip: true
-      })),
-      Plot.ruleX([0])
-    ]
-  })
-);
-
+// 1. Initialize DuckDB with Parquet file
+const db = await DuckDBClient.of({ 
+  opm: FileAttachment("./data/opm_data.parquet") 
+});
 ```
+
+```js
+// 2. Fetch independent filters (Agency and DRP)
+const agencyQuery = await db.sql`SELECT DISTINCT agency FROM opm WHERE agency IS NOT NULL ORDER BY agency`;
+const agencies = ["All Agencies", ...Array.from(agencyQuery, d => d.agency)];
+
+const agencyInput = Inputs.select(agencies, { label: "Agency:", value: "All Agencies" });
+const selectedAgency = Generators.input(agencyInput);
+
+const drpInput = Inputs.radio(["All", "true", "false"], { label: "DRP Indicator:", value: "All" });
+const selectedDrp = Generators.input(drpInput);
+```
+
+```js
+// 3. DEPENDENT FILTER: Fetch subelements based on selected Agency
+const subQuery = await db.sql`
+  SELECT DISTINCT agency_subelement 
+  FROM opm 
+  WHERE agency_subelement IS NOT NULL 
+    AND (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+  ORDER BY agency_subelement
+`;
+const subelements = ["All Subelements", ...Array.from(subQuery, d => d.agency_subelement)];
+
+const subelementInput = Inputs.select(subelements, { label: "Subelement:", value: "All Subelements" });
+const selectedSub = Generators.input(subelementInput);
+```
+
+```js
+// 3.5 DEPENDENT FILTER: Fetch occupations based on Agency and Subelement
+const occQuery = await db.sql`
+  SELECT DISTINCT occupational_series_code, occupational_series 
+  FROM opm 
+  WHERE occupational_series_code IS NOT NULL 
+    AND (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+  ORDER BY occupational_series_code
+`;
+
+// Create a Map where Keys = Display Labels, Values = Raw Codes
+const occOptions = new Map([
+  ["All", "All"],
+  ...Array.from(occQuery, d => [
+    `${d.occupational_series_code} - ${d.occupational_series ?? "Unknown"}`, 
+    d.occupational_series_code
+  ])
+]);
+
+// Create multi-select input, defaulting to "All"
+const occInput = Inputs.select(occOptions, { label: "Occupation:", multiple: true, value: ["All"] });
+const selectedOcc = Generators.input(occInput);
+```
+
+```js
+// 4. Reactive SQL for KPI metrics
+const metricsResult = await db.sql`
+  SELECT 
+    COUNT(*) AS total_employees,
+    AVG(annualized_adjusted_basic_pay) AS avg_salary,
+    AVG(length_of_service_years) AS avg_tenure
+  FROM opm
+  WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+`;
+
+const metrics = Array.from(metricsResult)[0];
+```
+
+```js
+// 5. Reactive SQL & Plot for Age Bracket (Stacked by Position Occupied)
+const ageData = await db.sql`
+  SELECT 
+    age_bracket, 
+    COALESCE(position_occupied, 'Unknown') AS position_occupied,
+    COUNT(*) AS count
+  FROM opm
+  WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+    AND age_bracket IS NOT NULL
+  GROUP BY age_bracket, position_occupied
+`;
+
+const ageChart = Plot.plot({
+  marginLeft: 100,
+  x: { label: "Number of Employees", grid: true },
+  y: { label: null },
+  color: { 
+    legend: true, 
+    label: "Position",
+    scheme: "tableau10" // Add clear color scheme for distinct categories
+  },
+  marks: [
+    Plot.barX(ageData, { 
+      x: "count", 
+      y: "age_bracket", 
+      fill: "position_occupied", 
+      sort: { y: "x", reverse: true },
+      tip: true 
+    }),
+    Plot.ruleX([0])
+  ]
+});
+```
+
+```js
+// 6. Reactive SQL & Plot for Top 10 Duty Station States (Stacked by Veteran Status)
+const stateData = await db.sql`
+  WITH TopStates AS (
+    SELECT duty_station_state
+    FROM opm
+    WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+      AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+      AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+      AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+      AND duty_station_state IS NOT NULL
+    GROUP BY duty_station_state
+    ORDER BY COUNT(*) DESC
+    LIMIT 10
+  )
+  SELECT 
+    duty_station_state, 
+    CASE 
+      WHEN veteran_indicator = true THEN 'Veteran'
+      WHEN veteran_indicator = false THEN 'Non-Veteran'
+      ELSE 'Unknown' 
+    END AS veteran_status,
+    COUNT(*) AS count
+  FROM opm
+  WHERE duty_station_state IN (SELECT duty_station_state FROM TopStates)
+    AND (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+  GROUP BY duty_station_state, veteran_indicator
+`;
+
+const stateChart = Plot.plot({
+  marginLeft: 120,
+  x: { label: "Number of Employees", grid: true },
+  y: { label: null, sort: { y: "-x" } },
+  color: { 
+    legend: true, 
+    label: "Veteran Status",
+    domain: ["Veteran", "Non-Veteran", "Unknown"],
+    range: ["#10b981", "#94a3b8", "#cbd5e1"] 
+  },
+  marks: [
+    Plot.barX(stateData, { 
+      x: "count", 
+      y: "duty_station_state", 
+      fill: "veteran_status", 
+      tip: true 
+    }),
+    Plot.ruleX([0])
+  ]
+});
+```
+
+```js
+// 7. Reactive SQL & Plot for Departures by Month (Stacked Bar Chart)
+const monthlyData = await db.sql`
+  SELECT 
+    date_trunc('month', personnel_action_effective_date_yyyymm) AS Month, 
+    separation_category,
+    COUNT(*) AS count
+  FROM opm
+  WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+    AND separation_category IS NOT NULL
+    AND personnel_action_effective_date_yyyymm IS NOT NULL
+  GROUP BY Month, separation_category
+  ORDER BY Month
+`;
+
+// Helper function to keep UTC date formatting consistent
+const formatMonth = (d) => new Date(d).toLocaleDateString("en-US", { 
+  timeZone: "UTC", 
+  month: "short", 
+  year: "numeric" 
+});
+
+const departuresChart = Plot.plot({
+  marginBottom: 60, 
+  x: { 
+    label: null, 
+    tickFormat: formatMonth,
+    tickRotate: -45
+  },
+  y: { label: "Departures", grid: true },
+  color: { 
+    legend: true, 
+    label: "Category",
+    scheme: "tableau10" 
+  },
+  marks: [
+    Plot.barY(monthlyData, { 
+      x: "Month", 
+      y: "count", 
+      fill: "separation_category", 
+      tip: {
+        format: {
+          x: formatMonth
+        }
+      } 
+    }),
+    Plot.ruleY([0])
+  ]
+});
+```
+
+```js
+// 8. Reactive SQL & Plot for Length of Service (Box Plot)
+const serviceData = await db.sql`
+  SELECT length_of_service_years
+  FROM opm
+  WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+    AND length_of_service_years IS NOT NULL
+`;
+
+const serviceBoxPlot = resize((width, height) => Plot.plot({
+  width,
+  height,
+  marginBottom: 45,
+  x: { 
+    label: "Length of Service (Years)", 
+    grid: true,
+    labelOffset: 30
+  },
+  y: { label: null },
+  marks: [
+    Plot.boxX(serviceData, { 
+      x: "length_of_service_years", 
+      fill: "#8b5cf6",
+      tip: true 
+    })
+  ]
+}));
+```
+
+```js
+// 9. Reactive SQL for the Data Table
+const tableData = await db.sql`
+  SELECT 
+    agency AS Agency, 
+    agency_subelement AS SubAgency,
+    length_of_service_years AS Tenure, 
+    occupational_series_code AS JobSeries,
+    grade AS Grade,
+    flsa_category as FLSA,
+    annualized_adjusted_basic_pay AS Salary, 
+    drp_indicator AS DRP
+  FROM opm
+  WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+  LIMIT 500
+`;
+
+const dataTable = Inputs.table(tableData);
+```
+
+<div class="grid grid-cols-3">
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div class="card" style="margin: 0;">${agencyInput}</div>
+    <div class="card" style="margin: 0;">${subelementInput}</div>
+    <div class="card" style="margin: 0;">${drpInput}</div>
+  </div>
+  <div class="card occ-card" style="grid-column: span 2;">${occInput}</div>
+</div>
+
+<div class="grid grid-cols-3">
+  <div class="card">
+    <h2>Total Employees</h2>
+    <span class="big">${Number(metrics.total_employees).toLocaleString()}</span>
+  </div>
+  <div class="card">
+    <h2>Average Salary</h2>
+    <span class="big">
+      ${metrics.avg_salary != null ? metrics.avg_salary.toLocaleString("en-US", {style: "currency", currency: "USD", maximumFractionDigits: 0}) : "N/A"}
+    </span>
+  </div>
+  <div class="card">
+    <h2>Average Tenure (Years)</h2>
+    <span class="big">
+      ${metrics.avg_tenure != null ? metrics.avg_tenure.toFixed(1) : "N/A"}
+    </span>
+  </div>
+</div>
+
+<div class="grid grid-cols-2">
+  <div class="card">
+    <h3>Employees by Age Bracket and Type</h3>
+    ${ageChart}
+  </div>
+
+  <div class="card">
+    <h3>Top 10 Impacted States (+Veteran Status)</h3>
+    ${stateChart}
+  </div>
+</div>
+
+<div class="grid grid-cols-2">
+  <div class="card">
+    <h3>Departures by Month and Type</h3>
+    ${departuresChart}
+  </div>
+
+  <div class="card">
+    <h3>Length of Service Distribution</h3>
+    ${serviceBoxPlot}
+  </div>
+</div>
+
+<div class="card">
+  <h3>Related Records</h3>
+  ${dataTable}
+</div>
+
+<style>
+  .big { 
+    font-size: 2rem; 
+    font-weight: bold; 
+  }
+  
+  .occ-card form {
+    max-width: none;
+    width: 100%;
+  }
+  .occ-card select {
+    flex: 1;
+    max-width: none;
+  }
+</style>
