@@ -1,17 +1,21 @@
 # Separation Anxiety
 
-View this project live on [GitHub Pages](https://hax4libre.github.io/separation-anxiety/).
+View this project live on [ForkingOff](https://data.forkingoff.com/). If you like it, please consider supporting us on ko-fi and check out our [podcast](https://forkingoff.com) where we hear the stories first hand.
 
-This is an Observable Framework app exploring *OPM Separation Data*. 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J1J01MKS81)
 
-The original JSON files can be downloaded directly from the [Office of Personnel Management](https://data.opm.gov/explore-data/data/data-downloads) using the options selected in the image below. The raw data is in about as bad of shape as you would expect from OPM, so a reference Jupyter Notebook is included at [the end of this project](src/separation-process.md). The notebook was used to clean the raw JSON files using pandas prior to exporting to parquet for use here in the Observable Framework. 
+On September 20, 2025, we joined over 100k other federal employees in what was likely the largest single day resignation in US history. Nearly 400k federal employees would leave their roles between January 2025 and January 2026. There have been countless stories describing the loss. This project is an effort to allow the public to learn more about those who those employees were and what they left behind.
+
+This is an Observable Framework app exploring *OPM Separation Data*. The original JSON files can be downloaded directly from the [Office of Personnel Management](https://data.opm.gov/explore-data/data/data-downloads) using the options selected in the image below. The raw data is in about as bad of shape as you would expect from OPM, so a reference Jupyter Notebook is included at [the end of this project](src/separation-process.md). The notebook was used to clean the raw JSON files using pandas prior to exporting to parquet for use here in the Observable Framework. 
 
 Additional features will be added over time. This is still in the experimental phase. Feedback is welcome! 
 
 ![OPM Download Page](src/opm.png)
 
-For more information on the Observable Framework, see <https://observablehq.com/framework/getting-started>.
+<details>
+  <summary>Click here to learn how to run your own Observable Framework app.</summary>
 
+For more information on the Observable Framework, see <https://observablehq.com/framework/getting-started>.
 
 This is an [Observable Framework](https://observablehq.com/framework/) app. To install the required dependencies, run:
 
@@ -70,3 +74,6 @@ A typical Framework project looks like this:
 | `npm run deploy`     | Deploy your app to Observable                            |
 | `npm run clean`      | Clear the local data loader cache                        |
 | `npm run observable` | Run commands like `observable help`                      |
+
+
+</details>
