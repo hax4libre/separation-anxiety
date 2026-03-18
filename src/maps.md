@@ -51,7 +51,6 @@ const countryCountsResult = await db.sql`
   FROM opm
   WHERE duty_station_country IS NOT NULL
     AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES'
-    -- The multi-select array filter logic
     AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   GROUP BY 1
   ORDER BY country_name
@@ -92,7 +91,6 @@ const tableData = await db.sql`
   WHERE duty_station_country IS NOT NULL
     AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES' -- Keep US records out of this table
     AND (${selectedCountry} = 'All Countries' OR TRIM(UPPER(duty_station_country)) = ${selectedCountry})
-    -- Ensure the table honors the global category filter
     AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   ORDER BY length_of_service_years DESC
 `;
