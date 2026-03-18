@@ -51,6 +51,7 @@ const countryCountsResult = await db.sql`
   FROM opm
   WHERE duty_station_country IS NOT NULL
     AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES'
+    AND TRIM(UPPER(duty_station_country)) != 'INVALID'
     AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   GROUP BY 1
   ORDER BY country_name
@@ -89,7 +90,8 @@ const tableData = await db.sql`
     veteran_indicator AS "Veteran"
   FROM opm
   WHERE duty_station_country IS NOT NULL
-    AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES' -- Keep US records out of this table
+    AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES'
+    AND TRIM(UPPER(duty_station_country)) != 'INVALID'
     AND (${selectedCountry} = 'All Countries' OR TRIM(UPPER(duty_station_country)) = ${selectedCountry})
     AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   ORDER BY length_of_service_years DESC

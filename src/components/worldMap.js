@@ -34,7 +34,7 @@ export async function globalSeparationsMap(data, { width = 975, height = 500 } =
     }
   });
   
-  // Keep the legend aligned to the right side
+  // Keep the legend centered
   legend.style.alignSelf = "center";
   
   container.appendChild(legend);
@@ -75,7 +75,7 @@ const svg = d3.create("svg")
          return `${d.properties.name}\nSeparations: ${val.toLocaleString()}`;
       });
 
-  // 6. Initialize D3 Zoom Behavior
+  // 6. D3 Zoom
   const zoom = d3.zoom()
       .scaleExtent([1, 8]) 
       .translateExtent([[0, 0], [width, height]]) 
