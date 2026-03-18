@@ -18,7 +18,32 @@ const db = await DuckDBClient.of({
 ```
 
 ```js
-// 2. Aggregate data for the global map (Excluding the US)
+// Fetch Separation Categories for the global filter
+const categoryQuery = await db.sql`
+  SELECT DISTINCT separation_category 
+  FROM opm 
+  WHERE separation_category IS NOT NULL 
+  ORDER BY separation_category
+`;
+
+// Create the options array, pushing "All" to the top
+const categories = ["All", ...Array.from(categoryQuery, d => d.separation_category)];
+
+// Create the multi-select dropdown
+const categoryInput = Inputs.select(categories, { 
+  label: "Separation Category:", 
+  multiple: true, 
+  value: ["All"] 
+});
+const selectedCategories = Generators.input(categoryInput);
+```
+
+<div class="card cat-card">
+  ${categoryInput}
+</div>
+
+```js
+// 2. Aggregate data for the global map (Excluding the US & applying category filter)
 const countryCountsResult = await db.sql`
   SELECT 
     TRIM(UPPER(duty_station_country)) AS country_name,
@@ -26,6 +51,8 @@ const countryCountsResult = await db.sql`
   FROM opm
   WHERE duty_station_country IS NOT NULL
     AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES'
+    -- The multi-select array filter logic
+    AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   GROUP BY 1
   ORDER BY country_name
 `;
@@ -38,19 +65,21 @@ const countryCountsResult = await db.sql`
 ## Country Detail Records
 
 ```js
-// 3. Extract the list of countries to populate our dropdown
-const countries = Array.from(countryCountsResult).map(d => d.country_name);
+// 3. Extract the list of countries and add "All Countries" to the top
+const countryList = Array.from(countryCountsResult).map(d => d.country_name);
+const countries = ["All Countries", ...countryList];
 
-// Create the dropdown, defaulting to the country with the most records
-const countryInput = Inputs.select(countries, { label: "Select Country:", value: "GERMANY" });
+// Create the dropdown, defaulting to "All Countries"
+const countryInput = Inputs.select(countries, { label: "Select Country:", value: "All Countries" });
 const selectedCountry = Generators.input(countryInput);
 ```
 
 ```js
-// 4. Query the raw records based on the dropdown selection
+// 4. Query the raw records based on BOTH the dropdown and the global filter
 const tableData = await db.sql`
   SELECT
     drp_indicator AS "DRP", 
+    duty_station_country AS "Country",
     agency_subelement AS "Agency", 
     occupational_series AS "Occupation",
     length_of_service_years AS "Years Served",
@@ -60,7 +89,11 @@ const tableData = await db.sql`
     age_bracket AS "Age",
     veteran_indicator AS "Veteran"
   FROM opm
-  WHERE TRIM(UPPER(duty_station_country)) = ${selectedCountry}
+  WHERE duty_station_country IS NOT NULL
+    AND TRIM(UPPER(duty_station_country)) != 'UNITED STATES' -- Keep US records out of this table
+    AND (${selectedCountry} = 'All Countries' OR TRIM(UPPER(duty_station_country)) = ${selectedCountry})
+    -- Ensure the table honors the global category filter
+    AND (${selectedCategories.includes('All')} OR list_contains(string_split(${selectedCategories.join(',')}, ','), separation_category))
   ORDER BY length_of_service_years DESC
 `;
 ```
@@ -88,6 +121,16 @@ const downloadButton = html`<a href="${downloadUrl}" download="international_sep
 </div>
 
 <style>
+  .cat-card form {
+    max-width: none;
+    width: 100%;
+  }
+  .cat-card select {
+    flex: 1;
+    max-width: none;
+    min-height: 80px;
+  }
+
   .table-scroll-container {
     overflow-x: auto;
     width: 100%;
