@@ -20,11 +20,10 @@ export async function globalSeparationsMap(data, { width = 975, height = 500 } =
   // 3. Create a master container wrapper
   const container = document.createElement("div");
   container.style.display = "flex";
-  container.style.flexDirection = "column";
-  container.style.alignItems = "flex-end"; 
+  container.style.flexDirection = "column"; 
   container.style.width = "100%";
 
-  // 4. Generate the standalone legend using Observable Plot
+// 4. Generate the standalone legend using Observable Plot
   const legend = Plot.legend({
     color: {
       type: "symlog",
@@ -35,18 +34,20 @@ export async function globalSeparationsMap(data, { width = 975, height = 500 } =
     }
   });
   
-  // Append the legend to our container
+  // Keep the legend aligned to the right side
+  legend.style.alignSelf = "center";
+  
   container.appendChild(legend);
 
   // 5. Setup D3 Scales and Projection
   const projection = d3.geoEqualEarth().fitSize([width, height], {type: "FeatureCollection", features: countries});
   const path = d3.geoPath(projection);
 
-  const svg = d3.create("svg")
+const svg = d3.create("svg")
       .attr("viewBox", [0, 0, width, height])
       .attr("width", width)
       .attr("height", height)
-      .attr("style", "max-width: 100%; height: auto; cursor: grab;")
+      .attr("style", "max-width: 100%; height: auto; cursor: grab; align-self: center;") 
       .style("background", "transparent");
 
   const g = svg.append("g");

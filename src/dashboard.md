@@ -380,7 +380,9 @@ const downloadButton = html`<a href="${downloadUrl}" download="opm_filtered_reco
 <div class="grid grid-cols-1">
   <div class="card">
     <h3>Geographic Distribution of Separations</h3>
-    ${await usSeparationsMap(mapData)}
+    <div style="display: flex; justify-content: center; width: 100%;">
+      ${await usSeparationsMap(mapData)}
+    </div>
   </div>
 </div>
 
