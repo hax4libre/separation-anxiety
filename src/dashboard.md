@@ -7,6 +7,10 @@ theme: dashboard
 
 Explore the federal workforce dataset. Use the filters below to slice the data dynamically. Additional features will be added over time.
 
+```js
+import { usSeparationsMap } from "./components/usMap.js";
+import * as d3 from "npm:d3";
+```
 
 ```js
 // 1. Initialize DuckDB with Parquet file
@@ -65,6 +69,24 @@ const occOptions = new Map([
 // Create multi-select input, defaulting to "All"
 const occInput = Inputs.select(occOptions, { label: "Occupation:", multiple: true, value: ["All"] });
 const selectedOcc = Generators.input(occInput);
+```
+
+```js
+// Reactive SQL for the US Map (Filters applied)
+const mapData = await db.sql`
+  SELECT 
+    LPAD(TRIM(MODE(duty_station_state_country_territory_code)), 2, '0') AS fips_id,
+    duty_station_state AS state_name,
+    CAST(COUNT(*) AS INTEGER) AS total_separations
+  FROM opm
+  WHERE duty_station_state IS NOT NULL
+    AND (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
+    AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
+    AND (${selectedDrp} = 'All' OR CAST(drp_indicator AS VARCHAR) = ${selectedDrp})
+    AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
+  GROUP BY duty_station_state
+  HAVING TRY_CAST(MODE(duty_station_state_country_territory_code) AS INTEGER) <= 56
+`;
 ```
 
 ```js
@@ -265,15 +287,19 @@ const serviceBoxPlot = resize((width, height) => Plot.plot({
 ```js
 // 9. Reactive SQL for the Data Table
 const tableData = await db.sql`
-  SELECT 
+  SELECT
+    drp_indicator AS DRP,
     agency AS Agency, 
     agency_subelement AS SubAgency,
     length_of_service_years AS Tenure, 
     occupational_series_code AS JobSeries,
+    position_occupied AS ServiceType,
+    age_bracket AS Age,
     grade AS Grade,
+    annualized_adjusted_basic_pay AS Salary,
     flsa_category as FLSA,
-    annualized_adjusted_basic_pay AS Salary, 
-    drp_indicator AS DRP
+    separation_category as DepartureType,
+    strftime(personnel_action_effective_date_yyyymm, '%m/%Y') AS DepartureMonth
   FROM opm
   WHERE (${selectedAgency} = 'All Agencies' OR agency = ${selectedAgency})
     AND (${selectedSub} = 'All Subelements' OR agency_subelement = ${selectedSub})
@@ -282,7 +308,21 @@ const tableData = await db.sql`
   LIMIT 500
 `;
 
-const dataTable = Inputs.table(tableData);
+const dataTable = Inputs.table(tableData, { layout: "auto" });
+```
+
+```js
+// Generate the CSV string from the DuckDB result
+const csvContent = d3.csvFormat(Array.from(tableData));
+
+// Create a Blob and a downloadable URL
+const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+const downloadUrl = URL.createObjectURL(blob);
+
+// Create the button UI using Observable's html tagged template
+const downloadButton = html`<a href="${downloadUrl}" download="opm_filtered_records.csv" style="display: inline-block; padding: 6px 12px; background: var(--theme-foreground-focus); color: var(--theme-background); text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px;">
+  <span style="margin-right: 6px;">⬇️</span> Download CSV
+</a>`;
 ```
 
 <div class="grid grid-cols-3">
@@ -296,7 +336,7 @@ const dataTable = Inputs.table(tableData);
 
 <div class="grid grid-cols-3">
   <div class="card">
-    <h2>Total Employees</h2>
+    <h2>Total Separations</h2>
     <span class="big">${Number(metrics.total_employees).toLocaleString()}</span>
   </div>
   <div class="card">
@@ -306,7 +346,7 @@ const dataTable = Inputs.table(tableData);
     </span>
   </div>
   <div class="card">
-    <h2>Average Tenure (Years)</h2>
+    <h2>Average Service (Years)</h2>
     <span class="big">
       ${metrics.avg_tenure != null ? metrics.avg_tenure.toFixed(1) : "N/A"}
     </span>
@@ -337,9 +377,22 @@ const dataTable = Inputs.table(tableData);
   </div>
 </div>
 
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h3>Geographic Distribution of Separations</h3>
+    ${await usSeparationsMap(mapData)}
+  </div>
+</div>
+
 <div class="card">
-  <h3>Related Records</h3>
-  ${dataTable}
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h3 style="margin: 0;">Related Records</h3>
+    ${downloadButton}
+  </div>
+  
+  <div class="table-scroll-container">
+    ${dataTable}
+  </div>
 </div>
 
 <style>
@@ -355,5 +408,16 @@ const dataTable = Inputs.table(tableData);
   .occ-card select {
     flex: 1;
     max-width: none;
+  }
+
+  /* Add these new rules for the table */
+  .table-scroll-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  .table-scroll-container table th,
+  .table-scroll-container table td {
+    white-space: nowrap !important;
   }
 </style>

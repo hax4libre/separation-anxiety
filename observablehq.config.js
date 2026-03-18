@@ -12,6 +12,7 @@ export default {
       pages: [
         {name: "Dashboard", path: "/dashboard"},
         // {name: "Old Dashboard", path: "/oldashboard"},
+        {name: "Maps", path: "/maps"},
         {name: "Jupyter Notebook", path: "/separation-process"}
       ]
     }
