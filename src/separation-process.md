@@ -1,6 +1,5 @@
 # OPM Separations Data Processing
-This page mirrors the Jupyter Notebook used to clean the raw JSON files downloaded from OPM. 
-The notebook loads the OPM separation data from multiple JSON files, filters out old records, cleans string artifacts, casts columns into native types (Dates, Booleans, Floats) for analysis in the Observable Framework, and exports the combined dataset as a highly optimized Parquet file.
+This notebook loads OPM separation data from multiple JSON files, filters out old records, cleans string artifacts, casts columns into native types (Dates, Booleans, Floats) for analysis in the Observable Framework, and exports the combined dataset as a highly optimized Parquet file.
 
 ## 1. Define I/O
 
@@ -92,9 +91,23 @@ The OPM data included a variety of missing or redacted fields, which complicates
 
 
 ```python
-missing_value_indicators = ["REDACTED", "NO DATA REPORTED", "*", " "]
+missing_value_indicators = ["REDACTED", "INVALID", "NO DATA REPORTED", "*", " "]
+
+# Count the occurrences before they are replaced
+values_to_nullify = combined_df.isin(missing_value_indicators).sum().sum()
+records_affected = combined_df.isin(missing_value_indicators).any(axis=1).sum()
+
+# Replace missing values
 combined_df.replace(missing_value_indicators, np.nan, inplace=True)
+
+# Print the results
+print(f"Number of values nullified: {values_to_nullify}")
+print(f"Number of records affected: {records_affected}")
 ```
+
+    Number of values nullified: 3618489
+    Number of records affected: 321644
+    
 
 ## 5. Type Casting: Numeric Values
 Standardizing data types for numeric values.
