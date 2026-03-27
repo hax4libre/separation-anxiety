@@ -1,3 +1,8 @@
+---
+title: Jupyter Notebook
+theme: dashboard
+---
+
 # OPM Separations Data Processing
 This notebook loads OPM separation data from multiple JSON files, filters out old records, cleans string artifacts, casts columns into native types (Dates, Booleans, Floats) for analysis in the Observable Framework, and exports the combined dataset as a highly optimized Parquet file.
 

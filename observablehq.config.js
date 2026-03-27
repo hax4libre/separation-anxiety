@@ -11,8 +11,8 @@ export default {
       name: "Contents",
       pages: [
         {name: "Dashboard", path: "/dashboard"},
-        // {name: "Old Dashboard", path: "/oldashboard"},
-        {name: "Foreign Impacts", path: "/maps"},
+        {name: "Foreign Impact", path: "/maps"},
+        {name: "Leadership Impact", path: "/lead"},
         {name: "Jupyter Notebook", path: "/separation-process"}
       ]
     }

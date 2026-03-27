@@ -1,10 +1,12 @@
 ---
-title: Global Geographic Distribution
+title: Foreign Impact
 theme: dashboard
 ---
 
-# Geographic Distribution of Separations
-This map displays the global footprint of federal employees who departed while assigned to international duty stations. Select a country in *Country Detail Records* below to learn more about the affected personnel for that country. Germany had the largest concentration at 21 separations. Of particular interest, a NOAA scientist assigned to Antarctica seemingly had their appointment terminated eight months ahead of their "not to exceed" date. We're sending them warm thoughts and hoping they weren't actually *in* Antarctica when it happened.
+# Global Distribution of Separations
+This map displays the global footprint of federal employees who departed while assigned to international duty stations. Select a country in *Country Detail Records* below to learn more about the affected personnel for that country. Germany had the largest concentration at 21 separations. 
+
+Of particular interest, a NOAA scientist assigned to Antarctica seemingly had their appointment terminated eight months ahead of their "not to exceed" date. We're sending them warm thoughts and hoping they weren't actually *in* Antarctica when it happened.
 
 ```js
 // 1. Imports and Database Initialization
@@ -38,10 +40,6 @@ const categoryInput = Inputs.select(categories, {
 const selectedCategories = Generators.input(categoryInput);
 ```
 
-<div class="card cat-card">
-  ${categoryInput}
-</div>
-
 ```js
 // 2. Aggregate data for the global map (Excluding the US & applying category filter)
 const countryCountsResult = await db.sql`
@@ -56,10 +54,6 @@ const countryCountsResult = await db.sql`
   ORDER BY country_name
 `;
 ```
-
-<div class="card">
-  ${await globalSeparationsMap(countryCountsResult)}
-</div>
 
 ## Country Detail Records
 
@@ -107,6 +101,16 @@ const downloadButton = html`<a href="${downloadUrl}" download="international_sep
 </a>`;
 ```
 
+<div class="grid grid-cols-1">
+  <div class="card cat-card">
+    ${categoryInput}
+  </div>
+</div>
+
+<div class="card">
+  ${await globalSeparationsMap(countryCountsResult)}
+</div>
+
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem;">
     <div>${countryInput}</div>
@@ -123,19 +127,4 @@ const downloadButton = html`<a href="${downloadUrl}" download="international_sep
     max-width: none;
     width: 100%;
   }
-  .cat-card select {
-    flex: 1;
-    max-width: none;
-    min-height: 80px;
-  }
-
-  .table-scroll-container {
-    overflow-x: auto;
-    width: 100%;
-  }
-  
-  .table-scroll-container table th,
-  .table-scroll-container table td {
-    white-space: nowrap !important;
-  }
-</style>
+  </style>

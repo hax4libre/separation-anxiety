@@ -129,7 +129,7 @@ const ageChart = Plot.plot({
   color: { 
     legend: true, 
     label: "Position",
-    scheme: "tableau10" // Add clear color scheme for distinct categories
+    scheme: "tableau10" 
   },
   marks: [
     Plot.barX(ageData, { 
@@ -326,10 +326,10 @@ const downloadButton = html`<a href="${downloadUrl}" download="opm_filtered_reco
 ```
 
 <div class="grid grid-cols-3">
-  <div style="display: flex; flex-direction: column; gap: 1rem;">
-    <div class="card" style="margin: 0;">${agencyInput}</div>
-    <div class="card" style="margin: 0;">${subelementInput}</div>
-    <div class="card" style="margin: 0;">${drpInput}</div>
+  <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+    ${agencyInput}
+    ${subelementInput}
+    ${drpInput}
   </div>
   <div class="card occ-card" style="grid-column: span 2;">${occInput}</div>
 </div>
@@ -398,28 +398,8 @@ const downloadButton = html`<a href="${downloadUrl}" download="opm_filtered_reco
 </div>
 
 <style>
-  .big { 
-    font-size: 2rem; 
-    font-weight: bold; 
-  }
-  
   .occ-card form {
     max-width: none;
     width: 100%;
-  }
-  .occ-card select {
-    flex: 1;
-    max-width: none;
-  }
-
-  /* Add these new rules for the table */
-  .table-scroll-container {
-    overflow-x: auto;
-    width: 100%;
-  }
-  
-  .table-scroll-container table th,
-  .table-scroll-container table td {
-    white-space: nowrap !important;
   }
 </style>
