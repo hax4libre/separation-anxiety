@@ -13,7 +13,8 @@ export default {
         {name: "Dashboard", path: "/dashboard"},
         {name: "Foreign Impact", path: "/maps"},
         {name: "Leadership Impact", path: "/lead"},
-        {name: "Jupyter Notebook", path: "/separation-process"}
+        {name: "Jupyter Notebook", path: "/separation-process"},
+        {name: "Data Dictionary", path: "/dictionary"}
       ]
     }
   ],
