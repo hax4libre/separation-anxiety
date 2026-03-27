@@ -149,34 +149,38 @@ const componentData = await db.sql`
   GROUP BY component, leadership_status
 `;
 
-const maxLabelLength = d3.max(Array.from(componentData), d => d.component.length) || 0;
-const dynamicMarginLeft = Math.min(Math.max(maxLabelLength * 6.5, 50), 300);
+const componentChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.25);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
 
-const componentChart = resize((width) => Plot.plot({
+  return Plot.plot({
   width,
-  marginLeft: dynamicMarginLeft, 
-  x: { label: "Total Separations", grid: true },
-  y: { 
-    label: null, 
-    sort: { y: "-x" },
-    tickFormat: (d) => d.length > 50 ? d.slice(0, 47) + "..." : d
-  },
-  color: { 
-    legend: true, 
-    domain: ["Leadership", "Non-Leadership"],
-    range: ["#f59e0b", "#0ea5e9"] 
-  },
-  marks: [
-    Plot.barX(componentData, { 
-      x: "count", 
-      y: "component", 
-      fill: "leadership_status", 
-      order: "sum", 
-      tip: true 
-    }),
-    Plot.ruleX([0])
-  ]
-}));
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40, 
+    x: { label: "Total Separations", grid: true },
+    y: { 
+      label: null, 
+      sort: { y: "-x" },
+      tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+    },
+    color: { 
+      legend: true, 
+      domain: ["Leadership", "Non-Leadership"],
+      range: ["#f59e0b", "#0ea5e9"] 
+    },
+    marks: [
+      Plot.barX(componentData, { 
+        x: "count", 
+        y: "component", 
+        fill: "leadership_status", 
+        order: "sum", 
+        tip: true 
+      }),
+      Plot.ruleX([0])
+    ]
+  });
+});
 ```
 
 ```js
@@ -210,7 +214,7 @@ const formatMonth = (d) => new Date(d).toLocaleDateString("en-US", {
 
 const departuresChart = resize((width) => Plot.plot({
   width, 
-  marginBottom: 60, 
+  marginBottom: 40, 
   x: { 
     label: null, 
     tickFormat: formatMonth,
@@ -307,11 +311,20 @@ const eligibilityData = await db.sql`
   GROUP BY retirement_tier, separation_category
 `;
 
-const eligibilityChart = resize((width) => Plot.plot({
+const eligibilityChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.2);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
   width,
-  marginLeft: 200, 
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40,
   x: { label: "Total Separations", grid: true },
-  y: { label: null, sort: { y: "x", reverse: true } },
+  y: { label: null,
+       sort: { y: "x", reverse: true },
+       tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+     },
   color: { 
     legend: true,
     scheme: "observable10",
@@ -327,7 +340,7 @@ const eligibilityChart = resize((width) => Plot.plot({
     }),
     Plot.ruleX([0])
   ]
-}));
+})});
 ```
 
 ```js
@@ -369,17 +382,20 @@ const occGroupData = await db.sql`
   GROUP BY occ_group, occ_series
 `;
 
-const maxOccLabelLength = d3.max(Array.from(occGroupData), d => d.occ_group.length) || 0;
-const dynamicOccMargin = Math.min(Math.max(maxOccLabelLength * 6.5, 50), 380);
+const occGroupChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.25);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
 
-const occGroupChart = resize((width) => Plot.plot({
+  return Plot.plot({
   width,
-  marginLeft: dynamicOccMargin,
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40,
   x: { label: "Total Separations", grid: true },
   y: { 
     label: null, 
     sort: { y: "-x" },
-    tickFormat: (d) => d.length > 55 ? d.slice(0, 52) + "..." : d
+    tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
   },
   color: { 
     scheme: "observable10" 
@@ -396,8 +412,9 @@ const occGroupChart = resize((width) => Plot.plot({
     }),
     Plot.ruleX([0])
   ]
-}));
+})});
 ```
+
 ```js
 // 11. Loss of Subject Matter Experts (Grade vs Tenure Scatter)
 const smeData = await db.sql`
@@ -420,10 +437,19 @@ const smeData = await db.sql`
     AND (${selectedOcc.includes('All')} OR list_contains(string_split(${selectedOcc.join(',')}, ','), occupational_series_code))
 `;
 
-const smeChart = resize((width) => Plot.plot({
+const smeChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.1);
+
+  return Plot.plot({
   width,
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40,
   x: { label: "Length of Service (Years)", grid: true },
-  y: { label: "Annualized Basic Pay ($)", grid: true, tickFormat: "s" },
+  y: { label: "Annualized Basic Pay ($)",
+       grid: true,
+       tickFormat: "s" 
+   },
   color: { legend: false }, // Let Plot handle categorical colors automatically, but hide the massive legend
   marks: [
     Plot.dot(smeData, { 
@@ -436,7 +462,7 @@ const smeChart = resize((width) => Plot.plot({
       tip: true 
     })
   ]
-}));
+})});
 ```
 
 ```js
@@ -458,11 +484,19 @@ const criticalData = await db.sql`
     AND (${selectedAge} = 'All' OR age_bracket = ${selectedAge})
 `;
 
-const criticalChart = resize((width) => Plot.plot({
+const criticalChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.2);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
   width,
-  marginLeft: 240,
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40,
   x: { label: "Length of Service (Years)", grid: true },
-  y: { label: null },
+  y: { label: null ,
+    tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+  },
   color: { scheme: "observable10" },
   marks: [
     Plot.boxX(criticalData, { 
@@ -473,7 +507,7 @@ const criticalChart = resize((width) => Plot.plot({
       clip: true
     })
   ]
-}));
+})});
 ```
 
 <div class="grid grid-cols-3">

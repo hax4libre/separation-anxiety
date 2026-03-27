@@ -135,10 +135,15 @@ const formatMonth = (d) => new Date(d).toLocaleDateString("en-US", {
   year: "numeric" 
 });
 
-const departuresChart = resize((width) => Plot.plot({
+const departuresChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.1);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
   width,
+  marginLeft: safeMarginLeft, 
   marginRight: 40,
-  marginBottom: 60, 
+  marginBottom: 40, 
   x: { 
     label: null, 
     tickFormat: formatMonth,
@@ -148,7 +153,8 @@ const departuresChart = resize((width) => Plot.plot({
   color: { 
     legend: true, 
     label: "Category",
-    scheme: "observable10" 
+    scheme: "observable10",
+    tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
   },
   marks: [
     Plot.areaY(monthlyData, { 
@@ -164,7 +170,7 @@ const departuresChart = resize((width) => Plot.plot({
     }),
     Plot.ruleY([0])
   ]
-}));
+})});
 ```
 
 ```js
@@ -205,12 +211,20 @@ const comparisonData = await db.sql`
   GROUP BY agency, subelement
 `;
 
-const comparisonChart = resize((width) => Plot.plot({
+const comparisonChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.2);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
   width,
-  marginLeft: 220,
+  marginLeft: safeMarginLeft, 
   marginRight: 40,
+  marginBottom: 40, 
   x: { label: "Total Leadership Separations", grid: true },
-  y: { label: null, sort: { y: "-x" } },
+  y: { label: null,
+   sort: { y: "-x" },
+   tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+   },
   color: { scheme: "observable10" }, 
   marks: [
     Plot.barX(comparisonData, { 
@@ -222,7 +236,7 @@ const comparisonChart = resize((width) => Plot.plot({
     }),
     Plot.ruleX([0])
   ]
-}));
+})});
 ```
 
 ```js
@@ -250,10 +264,20 @@ const roleData = await db.sql`
   ORDER BY count DESC
 `;
 
-const roleChart = Plot.plot({
-  marginLeft: 230,
+const roleChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.25);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
+  width,
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40, 
   x: { label: "Number of Departures", grid: true },
-  y: { label: null, sort: { y: "-x" } },
+  y: { label: null,
+   sort: { y: "-x" },
+   tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+   },
   marks: [
     Plot.barX(roleData, { 
       x: "count", 
@@ -263,7 +287,7 @@ const roleChart = Plot.plot({
     }),
     Plot.ruleX([0])
   ]
-});
+})});
 ```
 
 ```js
@@ -288,10 +312,20 @@ const positionData = await db.sql`
   ORDER BY count DESC
 `;
 
-const positionChart = Plot.plot({
-  marginLeft: 180,
+const positionChart = resize((width) => {
+  const safeMarginLeft = Math.max(40, width * 0.25);
+  const maxChars = Math.floor(safeMarginLeft / 6.5);
+
+  return Plot.plot({
+  width,
+  marginLeft: safeMarginLeft, 
+  marginRight: 40,
+  marginBottom: 40,
   x: { label: "Number of Departures", grid: true },
-  y: { label: null, sort: { y: "-x" } },
+  y: { label: null,
+       sort: { y: "-x" },
+       tickFormat: (d) => d.length > maxChars ? d.slice(0, maxChars - 3) + "..." : d
+     },
   marks: [
     Plot.barX(positionData, { 
       x: "count", 
@@ -301,7 +335,7 @@ const positionChart = Plot.plot({
     }),
     Plot.ruleX([0])
   ]
-});
+})});
 ```
 
 ```js
