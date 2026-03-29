@@ -21,8 +21,8 @@ export default {
   ],
 
   // Content to add to the head of the page, e.g. for a favicon:
-  head: `<link rel="icon" href="favicon.png" type="image/png" sizes="32x32">',
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5c746a92d61b426abb247e0008bcf6da"}'></script>
+  head: `<link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5c746a92d61b426abb247e0008bcf6da"}'></script>
   `,
   
   // The path to the source root.
