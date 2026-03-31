@@ -15,7 +15,8 @@ export default {
         {name: "Justice League", path: "/doj"},        
         {name: "Leadership Impact", path: "/lead"},
         {name: "Jupyter Notebook", path: "/separation-process"},
-        {name: "Data Dictionary", path: "/dictionary"}
+        {name: "Data Dictionary", path: "/dictionary"},
+        {name: "Before Times", path: "/before-times"},
       ]
     }
   ],
