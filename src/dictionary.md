@@ -73,7 +73,6 @@ const columnsWithValues = await Promise.all(
 display(html`
   <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
     ${columnsWithValues.map(row => {
-      // Bulletproof missing data calculation
       const totalCount = row.total_rows;
       const missingCount = totalCount - row.non_null_rows;
       const missingPct = totalCount > 0 ? ((missingCount / totalCount) * 100).toFixed(2) : 0;
