@@ -256,10 +256,9 @@ const dataSummary = await db.sql`SUMMARIZE SELECT * FROM bt`;
 ```
 
 ```js
-// 3. Fetch exact counts and ALL frequent values for each column asynchronously
+// 3. Fetch exact counts and frequent values for each column asynchronously
 const columnsWithValues = await Promise.all(
   Array.from(dataSummary).map(async (row) => {
-    // Exact total and non-null counts
     const stats = await db.query(`
       SELECT 
         COUNT(*) as total_rows, 
@@ -267,7 +266,6 @@ const columnsWithValues = await Promise.all(
       FROM bt
     `);
     
-    // Query ALL unique values and their counts
     const allValues = await db.query(`
       SELECT "${row.column_name}" AS Value, COUNT(*) AS Count 
       FROM bt 
@@ -275,7 +273,6 @@ const columnsWithValues = await Promise.all(
       ORDER BY Count DESC
     `);
     
-    // Format the results safely so they look clean in both the quick view and the Inputs.table
     const formattedValues = Array.from(allValues).map(v => {
       let displayVal = v.Value;
       if (row.column_type === 'DATE' && v.Value !== null) {
@@ -302,7 +299,6 @@ const columnsWithValues = await Promise.all(
 display(html`
   <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
     ${columnsWithValues.map(row => {
-      // Bulletproof missing data calculation
       const totalCount = row.total_rows;
       const missingCount = totalCount - row.non_null_rows;
       const missingPct = totalCount > 0 ? ((missingCount / totalCount) * 100).toFixed(2) : 0;

@@ -8,15 +8,21 @@ export default {
   // lets you organize them into sections and have unlisted pages.
   pages: [
     {
-      name: "Contents",
+      name: "Separation Data",
       pages: [
         {name: "Dashboard", path: "/dashboard"},
         {name: "Foreign Impact", path: "/maps"},        
         {name: "Justice League", path: "/doj"},        
         {name: "Leadership Impact", path: "/lead"},
         {name: "Jupyter Notebook", path: "/separation-process"},
-        {name: "Data Dictionary", path: "/dictionary"},
-        {name: "Before Times", path: "/before-times"},
+        {name: "Data Dictionary", path: "/dictionary"}
+      ]
+    },
+    {
+      name: "Supplemental Data",
+      pages: [
+        {name: "The Before Times", path: "/before-times"},
+        {name: "The Replacements", path: "/accession"}
       ]
     }
   ],

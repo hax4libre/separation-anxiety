@@ -29,8 +29,6 @@ const dataSummary = await db.sql`SUMMARIZE SELECT * FROM opm`;
 ```js
 // 3. Fetch exact counts and ALL frequent values for each column asynchronously
 const columnsWithValues = await Promise.all(
-  Array.from(dataSummary).map(async (row) => {
-    // Exact total and non-null counts
     const stats = await db.query(`
       SELECT 
         COUNT(*) as total_rows, 
@@ -38,7 +36,6 @@ const columnsWithValues = await Promise.all(
       FROM opm
     `);
     
-    // Query ALL unique values and their counts
     const allValues = await db.query(`
       SELECT "${row.column_name}" AS Value, COUNT(*) AS Count 
       FROM opm 
@@ -46,21 +43,20 @@ const columnsWithValues = await Promise.all(
       ORDER BY Count DESC
     `);
     
-    // Format the results safely so they look clean in both the quick view and the Inputs.table
     const formattedValues = Array.from(allValues).map(v => {
       let displayVal = v.Value;
       if (row.column_type === 'DATE' && v.Value !== null) {
         displayVal = new Date(Number(v.Value)).toISOString().split('T')[0];
       } else if (v.Value === null) {
-        displayVal = "null"; // Passed as a string so Inputs.table handles sorting safely
+        displayVal = "null";
       }
       return { Value: displayVal, Count: Number(v.Count) };
     });
     
     return { 
       ...row, 
-      topValues: formattedValues.slice(0, 5), // Keep the top 5 for the static preview
-      allValues: formattedValues, // Pass the full array for the "See all" table
+      topValues: formattedValues.slice(0, 5),
+      allValues: formattedValues,
       total_rows: Number(Array.from(stats)[0].total_rows),
       non_null_rows: Number(Array.from(stats)[0].non_null_rows)
     };
