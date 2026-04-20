@@ -29,6 +29,7 @@ const dataSummary = await db.sql`SUMMARIZE SELECT * FROM opm`;
 ```js
 // 3. Fetch exact counts and ALL frequent values for each column asynchronously
 const columnsWithValues = await Promise.all(
+  Array.from(dataSummary).map(async (row) => {
     const stats = await db.query(`
       SELECT 
         COUNT(*) as total_rows, 
