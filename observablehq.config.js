@@ -22,7 +22,8 @@ export default {
       name: "Supplemental Data",
       pages: [
         {name: "The Before Times", path: "/before-times"},
-        {name: "The Replacements", path: "/accession"}
+        {name: "The Replacements", path: "/accession"},
+        {name: "The After Math", path: "/after-math"}
       ]
     }
   ],

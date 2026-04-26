@@ -557,12 +557,9 @@ const smeData = await db.sql`
   SELECT 
     length_of_service_years,
     age_bracket,
-    occupational_series_code,
-    pay_plan_code || '-' || grade AS grade_level,
-    annualized_adjusted_basic_pay
+    occupational_series_code
   FROM accessions
   WHERE length_of_service_years IS NOT NULL
-    AND annualized_adjusted_basic_pay IS NOT NULL
     AND age_bracket IS NOT NULL
     AND (${selectedAgency} = 'All Agencies' OR CAST(agency_code AS VARCHAR) = ${selectedAgency})
     AND (${selectedSub} = 'All Components' OR CAST(agency_subelement_code AS VARCHAR) = ${selectedSub})
@@ -583,6 +580,12 @@ const smeChart = (() => {
 
   if (data.length === 0) return html`<div style="padding: 1rem; color: var(--theme-foreground-muted);">No data available for the selected filters.</div>`;
 
+  // 1. Calculate counts and map them to a format Plot.text can easily read
+  const countData = Array.from(
+    d3.rollup(data, v => v.length, d => d.age),
+    ([age, count]) => ({ age, count })
+  );
+
   // Sort age brackets logically from youngest to oldest
   const ageDomain = [...new Set(data.map(d => d.age))].sort((a, b) => {
     if (a.includes("LESS THAN")) return -1;
@@ -594,25 +597,35 @@ const smeChart = (() => {
 
   return resize((width) => Plot.plot({
     width,
-    height: 450, // Resized to fit standard dashboard proportions
+    height: 450,
     marginLeft: 60,
+    marginTop: 40, // 2. Added top margin so the text doesn't get cut off
     marginBottom: 60,
     grid: true,
     fx: { 
       domain: ageDomain, 
       label: null, 
-      tickRotate: -45, // Rotates labels to prevent overlap
+      tickRotate: -45, 
       padding: 0.05
     },
     y: { label: "Prior Service (Years)" },
     color: { scheme: "observable10" },
     marks: [
-      Plot.frame({ strokeOpacity: 0.2 }), // Light box around each age facet
+      Plot.frame({ strokeOpacity: 0.2 }),
       Plot.boxY(data, {
         fx: "age",
         y: "tenure",
         fill: "age",
         tip: true
+      }),
+      // 3. Add the text mark anchored to the top of each facet
+      Plot.text(countData, {
+        fx: "age",
+        frameAnchor: "top", // Locks the text to the top of the frame
+        dy: -20,            // Pushes the text 20 pixels up (outside the frame)
+        text: d => `n=${d.count}`,
+        fill: "var(--theme-foreground-muted)", // Uses your dashboard's theme color
+        fontWeight: "bold"
       })
     ]
   }));
